@@ -54,7 +54,9 @@ enb.freq(1_000)
 
 # Instantiate odometer
 odom = Odometer()
-pose = (0, 0, 0)
+
+# initial pose
+pose = odom.update(enc_a.value(), enc_b.value())
 
 def set_mtr_dirs(a_mode, b_mode):
     """Set motor direction pins for both motors.

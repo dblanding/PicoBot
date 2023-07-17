@@ -1,6 +1,6 @@
 # PicoBot2 Project Notes: Taking PicoBot to the next level
 
-## Joystick control options
+## A few differeent Joystick control options:
 
 * Joystick implemented in JavaScript code (originating on Pico webserver, running on client prowser)
 * Onscreen joystick running on laptop, sending data to Picobot via:
@@ -43,21 +43,17 @@ Looking at the javascript code in [Bob Grant's code](https://bytesnbits.co.uk/we
 * More Google searches on:
     * "How to create REST API in Python without flask"
     * "micropython rest api pico"
-* Decided to put the joystick idea *on the shelf* for now.
+* Decided to put the idea of writing a joystick in JavaScript *on the shelf* for now.
 
+### QT Joystick
 
-### Found a joystick implemented in pyqt4 and revised it for pyqt5: `joystick.py`
+* This simple `qt_joystick.py` script could work.
 
-* Revised the basic Pico Example: Controlling an LED using an async webserver: `async_webserver.py`
-* The plan is to get x, y coordinates from the joystick and feed them to the pico webserver, which will interpret them as linear speed and steering (angular speed) and drive the motors accordingly.
-    * `joystick.py` will run on the laptop, sending GET requests to the Picobot
-        * Send to this URL: http://192.168.1.64/x/y
-    * The webserver is running under `main.py` on the Pico
-        * Gets x, y values, calculates a & b motor direction & speed, drives motors
-* I actually decided to use the PS4 joystick instead and communicate over WiFi
-    * With each new (x, y) pair from the joystick, send them to picobot webserver.
-    * The picobot interprets them: x=linear speed, y=angular speed
-    * Wait for response from server then detect the next pair.
-* I guess I could have used this same approach with the PyQt joystick. Just send the data as soon as it is detected.
+### But I decided to use the PS4 gamepad controller connected to my laptop by USB
 
-
+* `ps4_joypub.py` runs on the laptop, sends GET requests to the Picobot
+    * URL: http://192.168.1.64/j/x/y, where x, y are the joystick coordinates.
+* The webserver runs under `main.py` on the Pico
+    * Webserver is a modified version of the basic Pico Example: Controlling an LED using an async webserver: `async_webserver.py`
+    * Interprets x, y as linear_speed, angular_speed and drives the motors accordingly.
+    
