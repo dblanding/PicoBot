@@ -9,7 +9,6 @@ Accept values (speed/steer/first/second/third/home)
 from PS3 gamepad controller via WiFi
 """
 
-import encoder_rp2 as encoder
 import gc
 import math
 import network
@@ -34,10 +33,6 @@ html = """<!DOCTYPE html>
 </html>
 """
 
-# setup encoders
-enc_b = encoder.Encoder(0, Pin(14))
-enc_a = encoder.Encoder(1, Pin(12))
-
 # setup onboard LED
 led = Pin("LED", Pin.OUT, value=0)
 
@@ -54,9 +49,6 @@ enb.freq(1_000)
 
 # Instantiate odometer
 odom = Odometer()
-
-# initial pose
-pose = odom.update(enc_a.value(), enc_b.value())
 
 def set_mtr_dirs(a_mode, b_mode):
     """Set motor direction pins for both motors.
@@ -93,18 +85,6 @@ def set_mtr_spds(a_PWM_val, b_PWM_val):
         b_val = 65_530
     ena.duty_u16(a_val)
     enb.duty_u16(b_val)
-
-def move_forward():
-    set_mtr_dirs('FWD', 'FWD')
-
-def move_backward():
-    set_mtr_dirs('REV', 'REV')
-
-def turn_left():
-    set_mtr_dirs('REV', 'FWD')
-
-def turn_right():
-    set_mtr_dirs('FWD', 'REV')
 
 def move_stop():
     set_mtr_dirs('OFF', 'OFF')
@@ -180,9 +160,10 @@ def connect():
 def do_buttons(buttons):
     one, two, three, home = buttons
     if one:
-        pose_x, pose_y, pose_angle = pose
+        # print current pose (x, y, theta(degrees))
+        pose_x, pose_y, pose_angle = odom.get_curr_pose()
         pose_ang_deg = pose_angle * 180 / math.pi
-        pose_deg = (pose_x, pose_y, pose_ang_deg)  # for display
+        pose_deg = (pose_x, pose_y, pose_ang_deg)
         print(pose_deg)
 
 async def serve_client(reader, writer):
@@ -225,16 +206,8 @@ async def main():
         # Flash LED
         led.toggle()
 
-        # get latest encoder values
-        enc_a_val = enc_a.value()
-        enc_b_val = enc_b.value()
-
         # Update odometer
-        pose = odom.update(enc_a_val, enc_b_val)
-        pose_x, pose_y, pose_angle = pose
-        pose_ang_deg = pose_angle * 180 / math.pi
-        pose_deg = (pose_x, pose_y, pose_ang_deg)  # for display
-
+        pose = odom.update()
 
         await asyncio.sleep(0.1)
 
