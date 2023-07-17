@@ -93,6 +93,24 @@ def move_stop():
 # Stop the robot NOW
 move_stop()
 
+def do_buttons(buttons):
+    one, two, three, home = buttons
+    if one:
+        # print current pose (x, y, theta(degrees))
+        pose_x, pose_y, pose_angle = odom.get_curr_pose()
+        pose_ang_deg = pose_angle * 180 / math.pi
+        pose_deg = (pose_x, pose_y, pose_ang_deg)
+        print(pose_deg)
+        
+    if three:
+        reset_odometer()
+
+def reset_odometer():
+    """Delete odom object and create new one at pose 0,0,0"""
+    global odom
+    del(odom)
+    odom = Odometer()
+
 def drive_motors(spd, str):
     """From input values for desired
     linear speed: spd (in range -1 to +1)
@@ -157,15 +175,6 @@ def connect():
         print('ip = ' + status[0])
     return ip
 
-def do_buttons(buttons):
-    one, two, three, home = buttons
-    if one:
-        # print current pose (x, y, theta(degrees))
-        pose_x, pose_y, pose_angle = odom.get_curr_pose()
-        pose_ang_deg = pose_angle * 180 / math.pi
-        pose_deg = (pose_x, pose_y, pose_ang_deg)
-        print(pose_deg)
-
 async def serve_client(reader, writer):
     request_line = await reader.readline()
     while await reader.readline() != b"\r\n":
@@ -195,7 +204,6 @@ async def serve_client(reader, writer):
     # print("Client disconnected")
 
 async def main():
-    global pose
     print('Connecting to Network...')
     connect()
 
