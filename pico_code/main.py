@@ -1,12 +1,12 @@
 """
-Modified to accept speed/steer values sent by
-webclient from joystick position.
-
 MicroPython code for Pico car project using:
 * Raspberry Pi Pico mounted on differential drive car
 * 56:1 gear motors with encoders
 * Asynchrounous webserver enabling remote control
 * Odometer keeps track of pose (x, y, angle)
+
+Accept values (speed/steer/first/second/third/home)
+from PS3 gamepad controller via WiFi
 """
 
 import encoder_rp2 as encoder
@@ -24,11 +24,6 @@ from parameters import (TICKS_PER_METER, TARGET_TICK_RATE,
 
 ssid = secrets['ssid']
 password = secrets['wifi_password']
-
-# Set drive_mode to one of: 'F', 'B', 'R', 'L', 'S'
-drive_mode = 'S'  # stop
-goal = None
-
 
 html = """<!DOCTYPE html>
 <html>
@@ -56,6 +51,10 @@ enb = PWM(Pin(16))
 
 ena.freq(1_000)
 enb.freq(1_000)
+
+# Instantiate odometer
+odom = Odometer()
+pose = (0, 0, 0)
 
 def set_mtr_dirs(a_mode, b_mode):
     """Set motor direction pins for both motors.
@@ -176,6 +175,14 @@ def connect():
         print('ip = ' + status[0])
     return ip
 
+def do_buttons(buttons):
+    one, two, three, home = buttons
+    if one:
+        pose_x, pose_y, pose_angle = pose
+        pose_ang_deg = pose_angle * 180 / math.pi
+        pose_deg = (pose_x, pose_y, pose_ang_deg)  # for display
+        print(pose_deg)
+
 async def serve_client(reader, writer):
     request_line = await reader.readline()
     while await reader.readline() != b"\r\n":
@@ -187,8 +194,11 @@ async def serve_client(reader, writer):
 
     stateis = ""
     try:
-        speed, steer = req_str.split('/')
+        speed, steer, b1, b2, b3, b4 = req_str.split('/')
         drive_motors(float(speed), float(steer))
+        buttons = (int(b1), int(b2), int(b3), int(b4))
+        if any(buttons):
+            do_buttons(buttons)
         stateis = "OK"
     except Exception as e:
         stateis = str(e)
@@ -202,16 +212,12 @@ async def serve_client(reader, writer):
     # print("Client disconnected")
 
 async def main():
-    global drive_mode, goal
+    global pose
     print('Connecting to Network...')
     connect()
 
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
-    start_time = time.ticks_ms()
-    prev_time = time.ticks_ms()
-    prev_mode = 'S'  # stop
-    odom = Odometer()
     while True:
 
         # Flash LED
@@ -221,7 +227,7 @@ async def main():
         enc_a_val = enc_a.value()
         enc_b_val = enc_b.value()
 
-        # get current pose
+        # Update odometer
         pose = odom.update(enc_a_val, enc_b_val)
         pose_x, pose_y, pose_angle = pose
         pose_ang_deg = pose_angle * 180 / math.pi
