@@ -2,11 +2,10 @@
 MicroPython code for Pico car project using:
 * Raspberry Pi Pico mounted on differential drive car
 * 56:1 gear motors with encoders
-* Asynchrounous webserver enabling remote control
+* Asynchrounous webserver accepts GET requests with
+  format: http://base_URL/speed/steer/<buttons>/...
+  encoding joystick and button presses of PS3 gamepad controller
 * Odometer keeps track of pose (x, y, angle)
-
-Accept values (speed/steer/first/second/third/home)
-from PS3 gamepad controller via http GET requests
 """
 
 import gc
@@ -35,8 +34,8 @@ html = """<!DOCTYPE html>
 """
 
 # navigation parmeters
-wp = (1, 0)
-test_flag = False
+wp = (2, 1)
+test_flag = 0
 
 # setup onboard LED
 led = Pin("LED", Pin.OUT, value=0)
@@ -168,10 +167,6 @@ def rel_polar_coords_to_pt(curr_pose, point):
 
     return (r, rel_angle)
 
-def turn_to_angle(ang):
-    """ Turn in place to angle (radians)."""
-    pass
-
 def drive_and_steer(spd, steer):
     """Drive forward at spd (range: -1 to +1) while making
     subtle steering corrections in proportion to
@@ -201,7 +196,7 @@ def do_buttons(buttons):
     
     if two:
         print("running test_drive()")
-        test_flag = True
+        test_flag = 1
     
     if three:
         reset_odometer()
@@ -242,8 +237,6 @@ async def serve_client(reader, writer):
     stateis = ""
     try:
         speed, steer, b1, b2, b3, b4 = req_str.split('/')
-        # following line is a vestige of earlier version
-        # drive_motors(float(speed), float(steer))
         buttons = (int(b1), int(b2), int(b3), int(b4))
         if any(buttons):
             do_buttons(buttons)
@@ -276,20 +269,29 @@ async def main():
 
         # test drive if flag is set
         if test_flag:
-            # Drive along a straight line to waypoint wp."""
             dist, rel_angle = rel_polar_coords_to_pt(pose, wp)
-            # print(dist, rel_angle)
-            # turn to aim at wp
-            # turn_to_angle(rel_angle)
+
+            if test_flag == 1:  # turn to aim at wp
+                if rel_angle > ANGLE_TOL:
+                    # turn CCW
+                    drive_motors(0, 1)
+                elif rel_angle < -ANGLE_TOL:
+                    # turn CW
+                    drive_motors(0, -1)
+                else:
+                    move_stop()
+                    test_flag = 2
+                    print(pose)
             
-            # drive to wp
-            spd = 1
-            if dist > APPROACH_DIST:
-                drive_and_steer(spd, rel_angle)
-            else:
-                move_stop()
-                test_flag = False
-                print(pose)
+            elif test_flag == 2:
+                # Drive along a straight line to waypoint wp."""
+                spd = 1
+                if dist > APPROACH_DIST:
+                    drive_and_steer(spd, rel_angle)
+                else:
+                    move_stop()
+                    test_flag = 0
+                    print(pose)
 
         await asyncio.sleep(0.1)
 
