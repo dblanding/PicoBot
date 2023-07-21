@@ -33,7 +33,9 @@ html = """<!DOCTYPE html>
 </html>
 """
 
-# navigation parmeters
+# navigation parameters
+waypoints = []
+wp_file = "waypoints.txt"
 joy_active = False
 joy_vals = (0, 0)
 wp = (2, 1)
@@ -186,20 +188,30 @@ def do_buttons(buttons):
     Callback for dispatching button-push events
     to desired action functions
     """
-    global test_flag
+    global test_flag, waypoints
     one, two, three, home = buttons
     if one:
-        # print current pose (x, y, theta(degrees))
-        pose_x, pose_y, pose_angle = odom.get_curr_pose()
-        pose_ang_deg = pose_angle * 180 / math.pi
-        pose_deg = (pose_x, pose_y, pose_ang_deg)
-        print(pose_deg)
+        # save current position to waypoints file 
+        x, y, angle = odom.get_curr_pose()
+        line = "%f, %f\n" % (x, y)
+        with open(wp_file, "a") as f:
+            f.write(line)
     
     if two:
-        print("running test_drive()")
+        # read wp_file
+        print("reading wp_file")
+        with open(wp_file) as f:
+            lines = f.readlines()
+            for line in lines:
+                str_x, str_y = line.split(',')
+                wp = float(str_x), float(str_y)
+                waypoints.append(wp)
+        
+    if three:
+        # drive waypoints
         test_flag = 1
     
-    if three:
+    if home:
         reset_odometer()
 
 wlan = network.WLAN(network.STA_IF)
@@ -284,9 +296,16 @@ async def main():
 
         # test drive if flag is set
         if test_flag:
-            dist, rel_angle = rel_polar_coords_to_pt(pose, wp)
+            if test_flag == 1:
+                # get next wp
+                if len(waypoints):
+                    wp = waypoints.pop(0)
+                    test_flag = 2  # turn toward wp
+                else:
+                    test_flag = 0  # finished
 
-            if test_flag == 1:  # turn to aim at wp
+            elif test_flag == 2:  # turn to aim at wp
+                dist, rel_angle = rel_polar_coords_to_pt(pose, wp)
                 if rel_angle > ANGLE_TOL:
                     # turn CCW
                     drive_motors(0, 1)
@@ -295,18 +314,20 @@ async def main():
                     drive_motors(0, -1)
                 else:
                     move_stop()
-                    test_flag = 2
+                    test_flag = 3  # drive to wp
                     print(pose)
             
-            elif test_flag == 2:
-                # Drive along a straight line to waypoint wp."""
+            elif test_flag == 3:
+                # Drive along a straight line to waypoint"""
+                dist, rel_angle = rel_polar_coords_to_pt(pose, wp)
                 spd = 1
                 if dist > APPROACH_DIST:
                     drive_and_steer(spd, rel_angle)
                 else:
                     move_stop()
-                    test_flag = 0
+                    test_flag = 1  # get next wp
                     print(pose)
+                    
 
         await asyncio.sleep(0.1)
 
