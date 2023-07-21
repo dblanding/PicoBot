@@ -34,6 +34,8 @@ html = """<!DOCTYPE html>
 """
 
 # navigation parmeters
+joy_active = False
+joy_vals = (0, 0)
 wp = (2, 1)
 test_flag = 0
 
@@ -179,7 +181,6 @@ def drive_and_steer(spd, steer):
     # drive motors
     drive_motors(spd, ang_spd)
     
-
 def do_buttons(buttons):
     """
     Callback for dispatching button-push events
@@ -226,6 +227,7 @@ def connect():
     return ip
 
 async def serve_client(reader, writer):
+    global joy_vals, joy_active
     request_line = await reader.readline()
     while await reader.readline() != b"\r\n":
         pass
@@ -237,6 +239,9 @@ async def serve_client(reader, writer):
     stateis = ""
     try:
         speed, steer, b1, b2, b3, b4 = req_str.split('/')
+        joy_vals = (float(speed), float(steer))
+        if any(joy_vals):
+            joy_active = True
         buttons = (int(b1), int(b2), int(b3), int(b4))
         if any(buttons):
             do_buttons(buttons)
@@ -253,7 +258,7 @@ async def serve_client(reader, writer):
     # print("Client disconnected")
 
 async def main():
-    global test_flag
+    global joy_active, test_flag
     print('Connecting to Network...')
     connect()
 
@@ -266,6 +271,16 @@ async def main():
 
         # Update odometer
         pose = odom.update()
+
+        # drive with joystick
+        if joy_active:
+            if any(joy_vals):
+                count = 5
+                drive_motors(*joy_vals)
+            elif count:  # keep it working a few more cycles
+                count -= 1
+                drive_motors(*joy_vals)
+                joy_active = False
 
         # test drive if flag is set
         if test_flag:
