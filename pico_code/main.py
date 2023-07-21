@@ -6,7 +6,7 @@ MicroPython code for Pico car project using:
 * Odometer keeps track of pose (x, y, angle)
 
 Accept values (speed/steer/first/second/third/home)
-from PS3 gamepad controller via WiFi
+from PS3 gamepad controller via http GET requests
 """
 
 import gc
@@ -18,8 +18,9 @@ from machine import Pin, PWM
 import time
 from secrets import secrets
 from odometer import Odometer
-from parameters import (TICKS_PER_METER, TARGET_TICK_RATE,
-                        TURN_SPD, ANGLE_TOL)
+from parameters import (TICKS_PER_METER, FULL_SPD,
+                        LOW_SPD, APPROACH_DIST,
+                        STOP_DIST, TURN_SPD, ANGLE_TOL)
 
 ssid = secrets['ssid']
 password = secrets['wifi_password']
@@ -32,6 +33,10 @@ html = """<!DOCTYPE html>
     </body>
 </html>
 """
+
+# navigation parmeters
+wp = (1, 0)
+test_flag = False
 
 # setup onboard LED
 led = Pin("LED", Pin.OUT, value=0)
@@ -93,38 +98,28 @@ def move_stop():
 # Stop the robot NOW
 move_stop()
 
-def do_buttons(buttons):
-    one, two, three, home = buttons
-    if one:
-        # print current pose (x, y, theta(degrees))
-        pose_x, pose_y, pose_angle = odom.get_curr_pose()
-        pose_ang_deg = pose_angle * 180 / math.pi
-        pose_deg = (pose_x, pose_y, pose_ang_deg)
-        print(pose_deg)
-        
-    if three:
-        reset_odometer()
-
 def reset_odometer():
     """Delete odom object and create new one at pose 0,0,0"""
     global odom
     del(odom)
     odom = Odometer()
 
-def drive_motors(spd, str):
-    """From input values for desired
-    linear speed: spd (in range -1 to +1)
-    angular speed: str (in range -1 to +1)
-    Calculate motor speed and drive motors accordingly
+def drive_motors(lin_spd, ang_spd):
+    """
+    Based on robot's desired motion in 2 DOF:
+    linear speed: lin_spd (in range -1 to +1)
+    angular speed: ang_spd (in range -1 to +1)
+    Calculate both motor speeds and
+    drive motors accordingly.
     """
     
     # linear components
-    a_lin_spd = int(TARGET_TICK_RATE * 11 * spd)
-    b_lin_spd = int(TARGET_TICK_RATE * 11 * spd)
+    a_lin_spd = int(FULL_SPD * lin_spd)
+    b_lin_spd = int(FULL_SPD * lin_spd)
     
     # turning components
-    a_ang_spd = int(TURN_SPD * str)
-    b_ang_spd = int(TURN_SPD * str)
+    a_ang_spd = int(TURN_SPD * ang_spd)
+    b_ang_spd = int(TURN_SPD * ang_spd)
     
     # superimpose components
     a_spd = a_lin_spd - a_ang_spd
@@ -150,6 +145,66 @@ def drive_motors(spd, str):
     
     # set motor speeds
     set_mtr_spds(abs(a_spd), abs(b_spd))
+
+def rel_polar_coords_to_pt(curr_pose, point):
+    """Based on current pose, return relative
+    polar coords dist (m), angle (rad) to goal point.
+    """
+    # current pose
+    x0, y0, a0 = curr_pose
+
+    # coords of goal point
+    x1, y1 = point
+
+    # Relative coords to goal point
+    x = x1 - x0
+    y = y1 - y0
+
+    # Convert rectangular coords to polar
+    r, theta = odom.r2p(x, y)
+
+    # Relative angle to goal point
+    rel_angle = theta - a0
+
+    return (r, rel_angle)
+
+def turn_to_angle(ang):
+    """ Turn in place to angle (radians)."""
+    pass
+
+def drive_and_steer(spd, steer):
+    """Drive forward at spd (range: -1 to +1) while making
+    subtle steering corrections in proportion to
+    relative angle to goal -> steer (radians).
+    """
+    # Guess at value of proportionality constant
+    KS = 1.0  # units: 1/sec
+    ang_spd = KS * steer
+    
+    # drive motors
+    drive_motors(spd, ang_spd)
+    
+
+def do_buttons(buttons):
+    """
+    Callback for dispatching button-push events
+    to desired action functions
+    """
+    global test_flag
+    one, two, three, home = buttons
+    if one:
+        # print current pose (x, y, theta(degrees))
+        pose_x, pose_y, pose_angle = odom.get_curr_pose()
+        pose_ang_deg = pose_angle * 180 / math.pi
+        pose_deg = (pose_x, pose_y, pose_ang_deg)
+        print(pose_deg)
+    
+    if two:
+        print("running test_drive()")
+        test_flag = True
+    
+    if three:
+        reset_odometer()
 
 wlan = network.WLAN(network.STA_IF)
 
@@ -187,7 +242,8 @@ async def serve_client(reader, writer):
     stateis = ""
     try:
         speed, steer, b1, b2, b3, b4 = req_str.split('/')
-        drive_motors(float(speed), float(steer))
+        # following line is a vestige of earlier version
+        # drive_motors(float(speed), float(steer))
         buttons = (int(b1), int(b2), int(b3), int(b4))
         if any(buttons):
             do_buttons(buttons)
@@ -204,6 +260,7 @@ async def serve_client(reader, writer):
     # print("Client disconnected")
 
 async def main():
+    global test_flag
     print('Connecting to Network...')
     connect()
 
@@ -216,6 +273,23 @@ async def main():
 
         # Update odometer
         pose = odom.update()
+
+        # test drive if flag is set
+        if test_flag:
+            # Drive along a straight line to waypoint wp."""
+            dist, rel_angle = rel_polar_coords_to_pt(pose, wp)
+            # print(dist, rel_angle)
+            # turn to aim at wp
+            # turn_to_angle(rel_angle)
+            
+            # drive to wp
+            spd = 1
+            if dist > APPROACH_DIST:
+                drive_and_steer(spd, rel_angle)
+            else:
+                move_stop()
+                test_flag = False
+                print(pose)
 
         await asyncio.sleep(0.1)
 

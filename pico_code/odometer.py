@@ -4,7 +4,6 @@ import math
 from parameters import TRACK_WIDTH, METERS_PER_TICK
 
 
-
 class Odometer():
     """
     Calculate and return current pose based on incremental changes in
@@ -62,11 +61,15 @@ class Odometer():
 
         return (self.x, self.y, self.ang)
 
+    # geometry helper functions
     def p2r(self, r, theta):
         """Convert polar coords to rectangular"""
         x = math.cos(theta) * r
         y = math.sin(theta) * r
         return (x, y)
-        
 
-        
+    def r2p(self, x, y):
+        """Convert rectangular coords to polar"""
+        r = math.sqrt(x*x + y*y)
+        theta = math.atan(y/x)
+        return (r, theta)

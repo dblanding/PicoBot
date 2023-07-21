@@ -21,7 +21,7 @@ sqr = 'SQUARE'
 ps = 'PS'
 joystickSpeed = 'LEFT-Y'
 joystickSteering = 'RIGHT-X'
-pollInterval = 0.1
+pollInterval = 0.2
 
 if __name__ == "__main__":
 
