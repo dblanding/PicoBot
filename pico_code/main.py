@@ -34,12 +34,12 @@ html = """<!DOCTYPE html>
 """
 
 # navigation parameters
-waypoints = []
+wp_flag = 0
 wp_file = "waypoints.txt"
+waypoints = []
 joy_active = False
 joy_vals = (0, 0)
-wp = (2, 1)
-test_flag = 0
+KS = 5  # steering proportionality constant (units: 1/sec)
 
 # setup onboard LED
 led = Pin("LED", Pin.OUT, value=0)
@@ -169,15 +169,19 @@ def rel_polar_coords_to_pt(curr_pose, point):
     # Relative angle to goal point
     rel_angle = theta - a0
 
+    # ensure angle is between -pi/2 and +pi/2
+    if rel_angle < -math.pi:
+        rel_angle += 2 * math.pi
+    elif rel_angle > math.pi:
+        rel_angle -= 2 * math.pi
+
     return (r, rel_angle)
 
 def drive_and_steer(spd, steer):
     """Drive forward at spd (range: -1 to +1) while making
-    subtle steering corrections in proportion to
-    relative angle to goal -> steer (radians).
+    subtle steering corrections in proportion to steer (rad),
+    relative angle to goal.
     """
-    # Guess at value of proportionality constant
-    KS = 1.0  # units: 1/sec
     ang_spd = KS * steer
     
     # drive motors
@@ -186,12 +190,12 @@ def drive_and_steer(spd, steer):
 def do_buttons(buttons):
     """
     Callback for dispatching button-push events
-    to desired action functions
+    to desired actions
     """
-    global test_flag, waypoints
-    one, two, three, home = buttons
+    global wp_flag, waypoints
+    one, two, three, home, p3 = buttons
     if one:
-        # save current position to waypoints file 
+        # save current position to waypoints file
         x, y, angle = odom.get_curr_pose()
         line = "%f, %f\n" % (x, y)
         with open(wp_file, "a") as f:
@@ -199,7 +203,7 @@ def do_buttons(buttons):
     
     if two:
         # read wp_file
-        print("reading wp_file")
+        print("Reading wp_file")
         with open(wp_file) as f:
             lines = f.readlines()
             for line in lines:
@@ -209,10 +213,17 @@ def do_buttons(buttons):
         
     if three:
         # drive waypoints
-        test_flag = 1
+        wp_flag = 1
     
     if home:
+        # reset odometer to pose (0, 0, 0)
         reset_odometer()
+    
+    if p3:
+        # erase wp_file
+        print("Erasing wp_file")
+        with open(wp_file, "w") as f:
+            f.write('')
 
 wlan = network.WLAN(network.STA_IF)
 
@@ -250,11 +261,11 @@ async def serve_client(reader, writer):
 
     stateis = ""
     try:
-        speed, steer, b1, b2, b3, b4 = req_str.split('/')
+        speed, steer, b1, b2, b3, b4, p3 = req_str.split('/')
         joy_vals = (float(speed), float(steer))
         if any(joy_vals):
             joy_active = True
-        buttons = (int(b1), int(b2), int(b3), int(b4))
+        buttons = (int(b1), int(b2), int(b3), int(b4), int(p3))
         if any(buttons):
             do_buttons(buttons)
         stateis = "OK"
@@ -270,7 +281,7 @@ async def serve_client(reader, writer):
     # print("Client disconnected")
 
 async def main():
-    global joy_active, test_flag
+    global joy_active, wp_flag
     print('Connecting to Network...')
     connect()
 
@@ -289,22 +300,22 @@ async def main():
             if any(joy_vals):
                 count = 5
                 drive_motors(*joy_vals)
-            elif count:  # keep it working a few more cycles
+            elif count:  # keep doing this a few more cycles
                 count -= 1
                 drive_motors(*joy_vals)
                 joy_active = False
 
-        # test drive if flag is set
-        if test_flag:
-            if test_flag == 1:
+        # drive sequentially to waypoints
+        if wp_flag:
+            if wp_flag == 1:
                 # get next wp
                 if len(waypoints):
                     wp = waypoints.pop(0)
-                    test_flag = 2  # turn toward wp
+                    wp_flag = 2  # turn toward wp
                 else:
-                    test_flag = 0  # finished
+                    wp_flag = 0  # finished
 
-            elif test_flag == 2:  # turn to aim at wp
+            elif wp_flag == 2:  # turn to aim at wp
                 dist, rel_angle = rel_polar_coords_to_pt(pose, wp)
                 if rel_angle > ANGLE_TOL:
                     # turn CCW
@@ -314,10 +325,10 @@ async def main():
                     drive_motors(0, -1)
                 else:
                     move_stop()
-                    test_flag = 3  # drive to wp
+                    wp_flag = 3  # drive to wp
                     print(pose)
             
-            elif test_flag == 3:
+            elif wp_flag == 3:
                 # Drive along a straight line to waypoint"""
                 dist, rel_angle = rel_polar_coords_to_pt(pose, wp)
                 spd = 1
@@ -325,9 +336,8 @@ async def main():
                     drive_and_steer(spd, rel_angle)
                 else:
                     move_stop()
-                    test_flag = 1  # get next wp
+                    wp_flag = 1  # get next wp
                     print(pose)
-                    
 
         await asyncio.sleep(0.1)
 

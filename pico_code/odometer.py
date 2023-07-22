@@ -71,5 +71,5 @@ class Odometer():
     def r2p(self, x, y):
         """Convert rectangular coords to polar"""
         r = math.sqrt(x*x + y*y)
-        theta = math.atan(y/x)
+        theta = math.atan2(y, x)
         return (r, theta)

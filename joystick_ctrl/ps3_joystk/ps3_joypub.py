@@ -10,7 +10,7 @@ import Gamepad
 import time
 import urllib.request
 
-base_url = "http://192.168.1.64/%s/%s/%s/%s/%s/%s"
+base_url = "http://192.168.1.64/%s/%s/%s/%s/%s/%s/%s"
 
 # Gamepad settings
 gamepadType = Gamepad.PS3
@@ -18,7 +18,7 @@ crs = 'CROSS'
 cir = 'CIRCLE'
 tri = 'TRIANGLE'
 sqr = 'SQUARE'
-ps = 'PS'
+ps3 = 'PS'
 joystickSpeed = 'LEFT-Y'
 joystickSteering = 'RIGHT-X'
 pollInterval = 0.2
@@ -40,18 +40,14 @@ if __name__ == "__main__":
     second = 0
     third = 0
     home = 0
+    p3 = 0
 
     # Start the background updating
     gamepad.startBackgroundUpdates()
 
     while True:
         if gamepad.isConnected():
-            # Check for the exit button
-            if gamepad.beenPressed(ps):
-                print('EXIT')
-                break
-
-            # Check to see if any other buttons pressed
+            # Check to see if any buttons pressed
             if gamepad.beenPressed(cir):
                 first = 1
             else:
@@ -72,10 +68,15 @@ if __name__ == "__main__":
             else:
                 home = 0
 
+            if gamepad.beenPressed(ps3):
+                p3 = 1
+            else:
+                p3 = 0
+
             # Check joystick coordinates
             speed = -gamepad.axis(joystickSpeed)
             steer = -gamepad.axis(joystickSteering)
-            values = (speed, steer, first, second, third, home)
+            values = (speed, steer, first, second, third, home, p3)
             with urllib.request.urlopen(base_url % values) as response:
                 html = response.read()
 
