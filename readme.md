@@ -52,7 +52,7 @@ Button | Name  | Function
 ```
 * Click on the image below to see a video of the PicoBot following the waypoints in the `waypoints.txt` file above. The waypoints are the corners of a square, 1 meter on each side.
 
-![waypoint driving](https://github.com/dblanding/PicoBot/assets/53412304/bc06bb61-378a-43b9-a90a-03d8c30c323c)
+![waypoint driving video](https://github.com/dblanding/PicoBot/assets/53412304/bc06bb61-378a-43b9-a90a-03d8c30c323c)
 
 
 ### Entering the waypoints while driving under joystick control
