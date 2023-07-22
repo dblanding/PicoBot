@@ -60,12 +60,12 @@ Button | Name  | Function
 * In the demo above, the waypoints were entered manually into the `waypoints.txt` file.
 * It is also posible to enter the waypoints interactively while driving under joystick control.
     1. Start the PicoBot in its *Home* position.
-    2. Press the **PS** button to *erase the contents of the `waypoints.txt` file.
+    2. Press the **PS** button to erase the contents of the `waypoints.txt` file.
     3. Use the joystick ccontrols to navigate to the first waypoint.
     4. Press the **CIRCLE** button to save the PicBot's currrent location as the first waypoint in the file.
     5. Repeat steps 3 & 4 to save all desired waypoints to the file.
         * The `waypoints.txt` file is now finished.
     6. Once the last waypoint has been saved, return the PicoBot to its *Home* position.
     7. Press the **CROSS** button to reset the odometer to (0, 0, 0).
-    9. Press the **TRIANGLE** button to read the waypoint file into a list of waypoints.
-    10. Press the **SQUARE** button, starting the PicoBot driving to each waypoint in sequence, stopping on arrival at the final waypoint.
+    8. Press the **TRIANGLE** button to read the waypoint file into a list of waypoints.
+    9. Press the **SQUARE** button, starting the PicoBot driving to each waypoint in sequence, stopping on arrival at the final waypoint.
