@@ -18,7 +18,7 @@ Button | Name  | Function
 ![CIRCLE](imgs/circle.jpg) | CIRCLE | Add current position to waypoint file
 ![TRIANGLE](imgs/triangle.jpg) | TRIANGLE | Read waypoint file -> list `waypoints`
 ![SQUARE](imgs/square.jpg) | SQUARE | Drive to waypoints sequentially
-![CROSS](imgs/cross.jpg) | CROSS | Reset odometer: current pose = (x=0, y=0, theta=0)
+![CROSS](imgs/cross.jpg) | CROSS | Reset odometer to (x=0, y=0, theta=0)
 ![PS](imgs/ps.jpg) | PS | Erase waypoint file
 
 ## Operating the PicoBot
@@ -31,7 +31,7 @@ Button | Name  | Function
     * Y axis is along the common axis of the wheels, positive to the left
     * Orientation starts at theta=0 along the X axis, Turning left causes value of orientation to increase.
 * The PicoBot has its own *local coordinate system* initially alilgned with the world coordinate system.
-    * Once the PicoBot moves, its local coordinate system moves with it, wheras the world coordinate system stays put. By counting the pulses from its encoders, the PicoBot keeps track of its position in the world coorinate system.
+    * Once the PicoBot moves, its local coordinate system moves with it, wheras the world coordinate system stays put. By counting the pulses from its encoders, the PicoBot keeps track of its position in the world coordinate system.
     
 ### Joystick operation
 
