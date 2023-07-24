@@ -69,3 +69,21 @@ Button | Name  | Function
     7. Press the **CROSS** button to reset the odometer to (0, 0, 0).
     8. Press the **TRIANGLE** button to read the waypoint file into a list of waypoints.
     9. Press the **SQUARE** button, starting the PicoBot driving to each waypoint in sequence, stopping on arrival at the final waypoint.
+    
+## What's Next?
+
+* Optimize performace of current configuration
+    * Check to see if car is driving fully to 1 meter long legs. Maybe need to add a slow approach to full stop.
+    * Check to see if car's turns are really 90 degrees. Maybe need to adjust value for wheel spacing.
+    * Smoother joystick control. Issues with hesitancy, sluggishness and lag in joystick control.
+        * Doesn't feel as solid as the omni-car with bluetooth
+            * Try add-on HC-05 BT modules
+            * See if I can get built-in BT working
+        * Maybe use motors class again, with joystick to set target tick rate, PID to get PWM values.
+* Extend current configuration 
+    * Add back IMU & VL53LOX TOF-VCSEL's to enable reconciling accumulating pose errors when using wheel odometry alone.
+    * Use a map of the room, enabling:
+        * PicoBot to be able to discover its location w/r/t local features
+        * Laptop program to be able to display PicoBot's current pose on map
+
+
