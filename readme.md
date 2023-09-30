@@ -30,14 +30,14 @@ Button | Name  | Function
     * Positive X axis is straight ahead
     * Y axis is along the common axis of the wheels, positive to the left
     * Orientation starts at theta=0 along the X axis, Turning left causes value of orientation to increase.
-* The PicoBot has its own *local coordinate system* initially alilgned with the world coordinate system.
-    * Once the PicoBot moves, its local coordinate system moves with it, wheras the world coordinate system stays put. By counting the pulses from its encoders, the PicoBot keeps track of its position in the world coordinate system.
+* The PicoBot has its own *local coordinate system* initially aligned with the world coordinate system.
+    * Once the PicoBot moves, its local coordinate system moves with it, whereas the world coordinate system stays put. By counting the pulses from its encoders, the PicoBot keeps track of its position in the world coordinate system.
     
 ### Joystick operation
 
 * One option for driving the PicoBot is to use the joystick control.
     * The left joystick controls speed
-    * The right joystick cocntrols turning
+    * The right joystick controls turning
 
 ### Automatically drive to a series of waypoints.
 
